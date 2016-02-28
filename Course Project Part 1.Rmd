@@ -1,0 +1,90 @@
+---
+title: "Investigation of Exponential Distribution and Comparison with Central Limit Theorem"
+author: "Brett A. Ochs"
+date: "February 28, 2016"
+output: html_document
+---
+
+```{r messages=FALSE}
+library(ggplot2)
+```
+
+##Overview
+This Statistical Inference Course Project will investigate the exponential distribution in R and compare it with the Central Limit Theorem. We will use lambda (0.2) as the rate parameter. The mean of exponential distribution is 1/lambda and the standard deviation is also 1/lambda. We will investigate the distribution of averages of 40 exponentials using a thousand simulations.
+
+First we will set some variables for number of simulations and sample size as well theoretical variables such as means, standard deviation, and variance.
+
+```{r}
+## Set variables based on homework guidance
+lambda <- 0.2
+num.exp <- 40
+num.sim <- 1000
+
+## Theoretical mean and standard deviation of exponential distribution
+mean.exp.dist <- 1/lambda
+sd.exp.dist <- 1/lambda
+sd.exp.var <- sd.exp.dist^2/num.exp
+```
+
+##Simulations
+
+Next we will run 1000 simulations of 40 samples of exponentials. We use the rexp() function in R stats package to generate 1000 simulations with number of observations set to 40 and lambda=0.2. We save this into a data frame for use in graphics and summary statistics later.
+
+```{r}
+## Generate 1000 simulations of 40 exponential distributions
+sim.1000 <- data.frame(sim.40=sapply(1:num.sim, function(exp.sim){
+    mean(rexp(num.exp, lambda))}))
+summary(sim.1000)
+```
+
+##Sample Mean versus Theoretical Mean
+
+```{r fig.height=8.5, fig.width=10}
+## Calculate sample mean from data frame containing simulation results
+sample.mean <- mean(sim.1000$sim.40)
+## Graph the simulated means along with theoretical distribution
+bw <- diff(range(sim.1000$sim.40)) / (2 * IQR(sim.1000$sim.40) / length(sim.1000$sim.40)^(1/3))
+ggplot(sim.1000, aes(x=round(sim.40, digits=1))) + geom_histogram(aes(y=..density..), bins=bw) +
+    geom_vline(xintercept=mean.exp.dist, color="blue", lwd=2) +
+    geom_vline(xintercept=sample.mean, color="red", lwd=1.75, linetype="dashed") +
+    labs(title="FIGURE 1. Graph of Sample Means from\n1000 Simulations of n=40 Exponential Distributions",
+         x="Sample Mean", y="Density") +
+    theme(axis.text.x=element_text(angle=30, vjust=0.5, size=10),
+          legend.position="none",
+          axis.text.y=element_text(size=10),
+          axis.title=element_text(size=12, face="bold"),
+          plot.title=element_text(size=16, face="bold"))
+## Run ttest on simulation mean to determine confidence interval to compare theoretical mean
+t.test(sim.1000$sim.40)
+```
+
+If we look at the graph of the 1000 simulations of exponential distributions we find the sample mean (red dashed line) is **`r round(sample.mean, digits=2)`** which is very close to the theoretical mean (blue solid line) of **`r round(mean.exp.dist, digits=2)`** with difference of only **`r round(mean.exp.dist-sample.mean, digits=2)`**.
+
+We can also look at the 95% confidence interval of the sample mean using t.test() in R. We find that this confidence interval ranges from **`r round(t.test(sim.1000$sim.40)$conf.int[1], digits=2)`** to **`r round(t.test(sim.1000$sim.40)$conf.int[2], digits=2)`**, and the theoretical mean of **`r round(mean.exp.dist, digits=2)`** falls within this CI. We can then fail to reject the null hypothesis that the sample mean and theoretical mean are the same.
+
+##Sample Variance versus Theoretical Variance:
+
+```{r}
+sample.variance <- var(sim.1000$sim.40)
+```
+
+If we calculate the sample variance of **`r round(sample.variance, digits=2)`** from the 1000 simulations and find it very close to the theoretical variance of **`r round(sd.exp.var, digits=2)`**. 
+
+##Distribution:
+
+```{r fig.height=8.5, fig.width=10}
+## Graph the simulated means along with theoretical distribution
+ggplot(sim.1000, aes(x=round(sim.40, digits=1))) + geom_histogram(aes(y=..density..), bins=bw) +
+    stat_function(fun=dnorm, args=list(mean=mean.exp.dist, sd=sd.exp.var), lwd=2, col="blue") +
+    geom_vline(xintercept=mean.exp.dist, color="blue", lwd=2) +
+    geom_vline(xintercept=sample.mean, color="red", lwd=1.75, linetype="dashed") +
+    labs(title="FIGURE 3. Graph of Sample Means from 1000 Simulations\nof Exponential Distributions with Normal Distribution Overlay",
+         x="Sample Mean", y="Density") +
+    theme(axis.text.x=element_text(angle=30, vjust=0.5, size=10),
+          legend.position="none",
+          axis.text.y=element_text(size=10),
+          axis.title=element_text(size=12, face="bold"),
+          plot.title=element_text(size=16, face="bold"))
+```
+
+Above we compare the sample distribution of means with the theoretical normal distribution of means. We see that they are very close.
